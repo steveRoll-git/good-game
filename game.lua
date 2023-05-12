@@ -303,7 +303,7 @@ function game:draw()
   if self.won then
     for i = 1, 5 do
       lg.setColor(1, 1, 1, 0.1)
-      lg.draw(self.gameCanvas, lg.getWidth() / 2, lg.getHeight() / 2, i * self.winEffect, (1 + i * self.winEffect) + (math.sin(love.timer.getTime() * 2 + i * 1.6) + 1) / 2 * self.winEffect, nil,
+      lg.draw(self.gameCanvas, lg.getWidth() / 2, lg.getHeight() / 2, i * self.winEffect * 0.5, (1 + i * self.winEffect) + (math.sin(love.timer.getTime() * 2 + i * 1.6) + 1) / 2 * self.winEffect, nil,
         self.gameCanvas:getWidth() / 2, self.gameCanvas:getHeight() / 2)
     end
   end
