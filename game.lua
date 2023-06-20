@@ -4,6 +4,21 @@ local lg = love.graphics
 local bump = require "bump"
 local flux = require "flux"
 
+local frameCount = 0
+
+local quadDitherShader = lg.newShader [[
+  uniform number idx;
+
+  vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
+    float ox = floor(mod(idx / 2 + 0.5, 2));
+    float oy = floor(mod(idx / 2 + 0.11, 2));
+    float fac = (mod(sc.x + ox, 2) + mod(sc.y + oy, 2));
+    vec4 pixel = Texel(texture, tc) * color;
+    return pixel * vec4(1, 1, 1, fac * 0.9);
+  }
+]]
+local quadDitherIndex = 0
+
 local tileSize = 48
 
 local moveDirs = {
@@ -53,11 +68,15 @@ function game:enter(_, level)
     uniform Image invertTexture;
     vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
       vec4 pixel = Texel(texture, tc);
-      vec4 inverted = vec4(1 - vec3(pixel), 1);
+      vec3 multiplied = vec3(pixel) * pixel.a;
+      vec4 inverted = vec4(1 - multiplied, 1);
       return lerp(pixel, inverted, Texel(invertTexture, tc).r) * color;
     }
   ]]
   self.invertShader:send("invertTexture", self.subCanvas)
+
+  self.trailCanvas1 = lg.newCanvas()
+  self.trailCanvas2 = lg.newCanvas()
 
   self.scrollText = level.title
   self.textScrollX = 0
@@ -173,7 +192,7 @@ end
 function game:win()
   self.won = true
   self.winEffect = 0
-  self.tweens:to(self, 2, {winEffect = 0.1})
+  self.tweens:to(self, 2, { winEffect = 0.1 })
 end
 
 function game:update(dt)
@@ -236,16 +255,24 @@ end
 function game:draw()
   lg.setCanvas({ self.gameCanvas, stencil = true })
   if self.won then
-    lg.clear(0, 0.3, 0, 1)
+    lg.clear(0, 0.3, 0, 0.1)
   else
-    lg.clear(0, 0, 0, 1)
+    lg.clear(0, 0, 0, 0)
   end
 
   lg.push()
   lg.translate(lg.getWidth() / 2 - self.level.width * tileSize / 2, lg.getHeight() / 2 - self.level.height * tileSize / 2)
 
-  lg.setColor(0, 0, 1, 0.05)
-  lg.rectangle("fill", 0, 0, self.level.width * tileSize, self.level.height * tileSize)
+  for _, c in ipairs(self.deathCrosses) do
+    lg.push()
+    lg.translate(c.x, c.y)
+    lg.rotate(c.r)
+    lg.setColor(1, 1, 1, c.a)
+    lg.setLineWidth(c.lw)
+    lg.line(-c.s, 0, c.s, 0)
+    lg.line(0, -c.s, 0, c.s)
+    lg.pop()
+  end
 
   for _, o in ipairs(self.objects) do
     lg.setColor(o.color)
@@ -265,30 +292,20 @@ function game:draw()
     end
   end
 
-  for _, c in ipairs(self.deathCrosses) do
-    lg.push()
-    lg.translate(c.x, c.y)
-    lg.rotate(c.r)
-    lg.setColor(1, 1, 1, c.a)
-    lg.setLineWidth(c.lw)
-    lg.line(-c.s, 0, c.s, 0)
-    lg.line(0, -c.s, 0, c.s)
-    lg.pop()
-  end
-
   lg.pop()
+  lg.setCanvas()
 
   lg.setCanvas(self.subCanvas)
   lg.clear(0, 0, 1, 1)
-  lg.setColor(1, 1, 1, 0.15)
   local a = (love.timer.getTime() / 3) % (math.pi * 2)
-  local d = math.sin(love.timer.getTime()) * 5
+  local d = math.sin(love.timer.getTime()) * 7
+  lg.setColor(1, 1, 1, math.abs(d / 5) / 4)
   lg.draw(self.gameCanvas, math.cos(a) * d, math.sin(a) * d)
   lg.setColor(1, 1, 1)
   lg.setFont(titleFont)
   lg.print(self.level.title, self.textScrollX, lg.getHeight() - titleFont:getHeight() * titleScale, 0, titleScale)
   lg.setFont(timerFont)
-  lg.setColor(1, 1, 1, 0.2)
+  lg.setColor(1, 1, 1, 0.4)
   lg.printf(("%.2f"):format(self.levelTime), 0, lg.getHeight() / 2 - timerFont:getHeight() / 2, lg.getWidth(), "center")
   if self.won then
     lg.setFont(titleFont)
@@ -297,17 +314,46 @@ function game:draw()
   end
   lg.setCanvas()
 
+  self.trailCanvas1, self.trailCanvas2 = self.trailCanvas2, self.trailCanvas1
+
+  lg.setCanvas(self.trailCanvas2)
+  lg.setColor(1, 1, 1)
+  lg.draw(self.gameCanvas)
+  lg.setCanvas()
+
+  lg.setCanvas(self.trailCanvas1)
+  lg.clear(0, 0, 0, 0)
+  lg.setColor(1, 1, 1, 255 / 255)
+  if frameCount % 5 == 0 then
+    quadDitherIndex = (quadDitherIndex + 1) % 4
+    quadDitherShader:send("idx", quadDitherIndex)
+    lg.setShader(quadDitherShader)
+  end
+  lg.draw(self.trailCanvas2)
+  lg.setShader()
+  lg.setCanvas()
+
+  lg.setColor(1, 1, 1, 0.5)
+  lg.draw(self.trailCanvas2)
+
   lg.setShader(self.invertShader)
   lg.setColor(1, 1, 1)
   lg.draw(self.gameCanvas)
   if self.won then
     for i = 1, 5 do
       lg.setColor(1, 1, 1, 0.1)
-      lg.draw(self.gameCanvas, lg.getWidth() / 2, lg.getHeight() / 2, i * self.winEffect * 0.5, (1 + i * self.winEffect) + (math.sin(love.timer.getTime() * 2 + i * 1.6) + 1) / 2 * self.winEffect, nil,
+      lg.draw(self.gameCanvas,
+        lg.getWidth() / 2,
+        lg.getHeight() / 2,
+        i * self.winEffect * 0.5,
+        (1 + i * self.winEffect) + (math.sin(love.timer.getTime() * 2 + i * 1.6) + 1) / 2 * self.winEffect,
+        nil,
         self.gameCanvas:getWidth() / 2, self.gameCanvas:getHeight() / 2)
     end
   end
   lg.setShader()
+
+  frameCount = frameCount + 1
 end
 
 return game
