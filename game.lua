@@ -234,6 +234,11 @@ function game:update(dt)
       self.startTime = love.timer.getTime()
     end
     self.levelTime = love.timer.getTime() - self.startTime
+
+    local speed = math.abs(self.player.vx) / 2 + math.abs(self.player.vy) / 2
+    local color = (1.5 - speed / 50) ^ 2
+    self.player.color[2] = color
+    self.player.color[3] = color
   end
 
   if self.restartTimer then
@@ -333,7 +338,7 @@ function game:draw()
   lg.setShader()
   lg.setCanvas()
 
-  lg.setColor(1, 1, 1, 0.5)
+  lg.setColor(1, 1, 1, 0.6)
   lg.draw(self.trailCanvas2)
 
   lg.setShader(self.invertShader)
