@@ -312,6 +312,12 @@ function game:draw()
   lg.setFont(titleFont)
   lg.print(self.level.title, self.textScrollX, lg.getHeight() - titleFont:getHeight() * titleScale, 0, titleScale)
   lg.setFont(timerFont)
+  lg.setColor(0, 0, 0, 0.7)
+  lg.printf(("%.2f"):format(self.levelTime),
+    5,
+    lg.getHeight() / 2 - timerFont:getHeight() / 2 + 5,
+    lg.getWidth(),
+    "center")
   lg.setColor(1, 1, 1, 0.4)
   lg.printf(("%.2f"):format(self.levelTime), 0, lg.getHeight() / 2 - timerFont:getHeight() / 2, lg.getWidth(), "center")
   if self.won then
