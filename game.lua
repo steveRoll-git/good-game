@@ -19,6 +19,8 @@ local quadDitherShader = lg.newShader [[
 ]]
 local quadDitherIndex = 0
 
+local noiseShader = lg.newShader("shaders/noise.glsl")
+
 local tileSize = 48
 
 local moveDirs = {
@@ -337,6 +339,12 @@ function game:draw()
   lg.draw(self.trailCanvas2)
   lg.setShader()
   lg.setCanvas()
+
+  lg.setColor(1, 1, 1)
+  lg.setShader(noiseShader)
+  noiseShader:send("offset", { love.timer.getTime() / 10, love.timer.getTime() / 10, love.timer.getTime() / 10 })
+  lg.rectangle("fill", 0, 0, lg.getDimensions())
+  lg.setShader()
 
   lg.setColor(1, 1, 1, 0.6)
   lg.draw(self.trailCanvas2)
