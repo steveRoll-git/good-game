@@ -18,6 +18,7 @@ return {
       y = 1,
     }
   },
+  neededKeys = 0,
   playerX = 1,
   playerY = 1,
 }

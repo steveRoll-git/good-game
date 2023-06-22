@@ -16,8 +16,24 @@ return {
       type = "goal",
       x = 5,
       y = 1,
-    }
+    },
+    {
+      type = "key",
+      x = 3,
+      y = 5,
+    },
+    {
+      type = "key",
+      x = 5,
+      y = 5,
+    },
+    {
+      type = "key",
+      x = 4,
+      y = 5,
+    },
   },
+  neededKeys = 3,
   playerX = 1,
   playerY = 1,
   nextLevel = "level2",

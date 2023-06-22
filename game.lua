@@ -52,6 +52,12 @@ local titleScale = 3
 
 local timerFont = lg.newFont(150)
 
+local function centerPos(o, x, y)
+  return
+      x * tileSize + tileSize / 2 - o.w / 2,
+      y * tileSize + tileSize / 2 - o.h / 2
+end
+
 local game = {}
 
 function game:enter(_, level)
@@ -83,12 +89,6 @@ function game:enter(_, level)
   self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
 
   self:startLevel(level)
-end
-
-function game:centerPos(o, x, y)
-  return
-      x * tileSize + tileSize / 2 - o.w / 2,
-      y * tileSize + tileSize / 2 - o.h / 2
 end
 
 function game:startLevel(level)
@@ -128,8 +128,18 @@ function game:startLevel(level)
         h = tileSize * .7,
         color = { 0, 1, 0 }
       }
-      goal.x, goal.y = self:centerPos(goal, e.x, e.y)
+      goal.x, goal.y = centerPos(goal, e.x, e.y)
       self:addObject(goal)
+    elseif e.type == "key" then
+      local key = {
+        key = true,
+        cross = true,
+        w = tileSize * .3,
+        h = tileSize * .3,
+        color = { 1, 1, 0 }
+      }
+      key.x, key.y = centerPos(key, e.x, e.y)
+      self:addObject(key)
     else
       error("what entity type '" .. e.type .. "'????")
     end
@@ -143,11 +153,12 @@ function game:startLevel(level)
     accel = 1,
     color = { 1, 1, 1 }
   }
-  self.player.x, self.player.y = self:centerPos(self.player, level.playerX, level.playerY)
+  self.player.x, self.player.y = centerPos(self.player, level.playerX, level.playerY)
 
   self.dead = false
   self.won = false
   self.restartTimer = nil
+  self.keysCount = 0
 
   self.startTime = love.timer.getTime()
   self.firstMoved = false
@@ -221,8 +232,11 @@ function game:update(dt)
         break
       end
 
-      if col.other.goal then
+      if col.other.goal and self.keysCount >= self.level.neededKeys then
         self.touchingGoal = true
+      elseif col.other.key then
+        self:removeObject(col.other)
+        self.keysCount = self.keysCount + 1
       end
     end
 
@@ -294,17 +308,46 @@ function game:draw()
     lg.setColor(o.color)
     lg.rectangle("fill", o.x, o.y, o.w, o.h)
 
-    if o.goal and self.goalTimer > 0 then
-      lg.push()
-      lg.setStencilTest("greater", 0)
-      lg.stencil(function()
+    if o.goal then
+      if self.keysCount < self.level.neededKeys then
+        -- locked
+        lg.setColor(0, 0, 0, 0.5)
         lg.rectangle("fill", o.x, o.y, o.w, o.h)
-      end, "replace", 1)
-      lg.translate(o.x + o.w / 2, o.y + o.h / 2)
-      lg.setColor(0, 0.5, 0)
-      lg.arc("fill", "pie", 0, 0, o.w, 0, self.goalTimer / goalDuration * math.pi * 2)
-      lg.setStencilTest()
-      lg.pop()
+        local remaining = self.level.neededKeys - self.keysCount
+        lg.push()
+        lg.translate(o.x + o.w / 2, o.y + o.h / 2)
+        lg.rotate(love.timer.getTime())
+        lg.setColor(o.color)
+        if remaining == 1 then
+          lg.circle("fill", tileSize / 5, 0, 4)
+        elseif remaining == 2 then
+          lg.setLineWidth(4)
+          lg.line(-tileSize / 4, 0, tileSize / 4, 0)
+        else
+          lg.circle("fill", 0, 0, tileSize / 4, remaining)
+        end
+        lg.pop()
+      else
+        -- unlocked
+        lg.setColor(o.color[1], o.color[2], o.color[3], (math.sin(love.timer.getTime() * 5) + 1) / 2 * 0.2 + 0.5)
+        lg.rectangle("fill",
+          o.x + math.sin(love.timer.getTime() * 1.5) * 5 - o.w * 0.15,
+          o.y + math.cos(love.timer.getTime() * 1.5) * 5 - o.h * 0.15,
+          o.w * 1.3, o.h * 1.3)
+      end
+
+      if self.goalTimer > 0 then
+        lg.push()
+        lg.setStencilTest("greater", 0)
+        lg.stencil(function()
+          lg.rectangle("fill", o.x, o.y, o.w, o.h)
+        end, "replace", 1)
+        lg.translate(o.x + o.w / 2, o.y + o.h / 2)
+        lg.setColor(0, 0.5, 0)
+        lg.arc("fill", "pie", 0, 0, o.w, 0, self.goalTimer / goalDuration * math.pi * 2)
+        lg.setStencilTest()
+        lg.pop()
+      end
     end
   end
 
