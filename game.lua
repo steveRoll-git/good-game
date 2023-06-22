@@ -57,8 +57,6 @@ local game = {}
 function game:enter(_, level)
   self.tweens = flux.group()
 
-  self.deathCrosses = {}
-
   self.gameCanvas = lg.newCanvas()
   self.subCanvas = lg.newCanvas()
 
@@ -94,6 +92,10 @@ function game:centerPos(o, x, y)
 end
 
 function game:startLevel(level)
+  if level ~= self.level then
+    self.deathCrosses = {}
+  end
+
   self.level = level
 
   self.world = bump.newWorld(tileSize * 2)
@@ -144,6 +146,7 @@ function game:startLevel(level)
   self.player.x, self.player.y = self:centerPos(self.player, level.playerX, level.playerY)
 
   self.dead = false
+  self.won = false
   self.restartTimer = nil
 
   self.startTime = love.timer.getTime()
@@ -257,6 +260,12 @@ function game:update(dt)
   end
 
   self.tweens:update(dt)
+end
+
+function game:keypressed(k)
+  if k == "space" and self.won then
+    self:startLevel(require("levels." .. self.level.nextLevel))
+  end
 end
 
 function game:draw()

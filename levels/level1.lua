@@ -20,4 +20,5 @@ return {
   },
   playerX = 1,
   playerY = 1,
+  nextLevel = "level2",
 }
