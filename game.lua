@@ -103,6 +103,7 @@ function game:enter(_, level)
   self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
 
   self.shockwaves = {}
+  self.shakeAmount = 0
 
   self:startLevel(level)
 end
@@ -216,6 +217,7 @@ function game:die()
   table.insert(self.deathCrosses, cross)
 
   self:spawnShockwave(self.player:midX(), self.player:midY(), 0.02, 0.1, 0.07, 1)
+  self:shake(10, 0.5)
 
   if #self.deathCrosses > maxCrosses then
     self.tweens:to(self.deathCrosses[1], 2, { a = 0 })
@@ -229,6 +231,11 @@ function game:win()
   self.won = true
   self.winEffect = 0
   self.tweens:to(self, 2, { winEffect = 0.1 })
+end
+
+function game:shake(amount, time)
+  self.shakeAmount = amount
+  self.tweens:to(self, time, { shakeAmount = 0 })
 end
 
 function game:spawnShockwave(x, y, startRadius, endRadius, width, lifetime)
@@ -346,7 +353,7 @@ function game:draw()
   end
 
   lg.push()
-  lg.translate(self.cameraX, self.cameraY)
+  lg.translate(self.cameraX + self.shakeAmount * love.math.random(), self.cameraY + self.shakeAmount * love.math.random())
 
   for _, c in ipairs(self.deathCrosses) do
     lg.push()
