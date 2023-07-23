@@ -58,12 +58,25 @@ local function centerPos(o, x, y)
       y * tileSize + tileSize / 2 - o.h / 2
 end
 
+local function lerp(a, b, t)
+  return a + (b - a) * t
+end
+
+local function objectMidX(self)
+  return self.x + self.w / 2
+end
+
+local function objectMidY(self)
+  return self.y + self.h / 2
+end
+
 local game = {}
 
 function game:enter(_, level)
   self.tweens = flux.group()
 
   self.gameCanvas = lg.newCanvas()
+  self.sideCanvas = lg.newCanvas()
   self.subCanvas = lg.newCanvas()
 
   self.invertShader = lg.newShader [[
@@ -80,6 +93,7 @@ function game:enter(_, level)
     }
   ]]
   self.invertShader:send("invertTexture", self.subCanvas)
+  self.shockwaveShader = lg.newShader("shaders/shockwave.glsl")
 
   self.trailCanvas1 = lg.newCanvas()
   self.trailCanvas2 = lg.newCanvas()
@@ -87,6 +101,8 @@ function game:enter(_, level)
   self.scrollText = level.title
   self.textScrollX = 0
   self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
+
+  self.shockwaves = {}
 
   self:startLevel(level)
 end
@@ -167,6 +183,8 @@ function game:startLevel(level)
 end
 
 function game:addObject(obj)
+  obj.midX = objectMidX
+  obj.midY = objectMidY
   table.insert(self.objects, obj)
   self.world:add(obj, obj.x, obj.y, obj.w, obj.h)
 end
@@ -187,8 +205,8 @@ function game:die()
   self:removeObject(self.player)
 
   local cross = {
-    x = self.player.x + self.player.w / 2,
-    y = self.player.y + self.player.h / 2,
+    x = self.player:midX(),
+    y = self.player:midY(),
     lw = self.player.w,
     s = self.player.w / 2,
     r = 0,
@@ -196,6 +214,8 @@ function game:die()
   }
   self.tweens:to(cross, 0.5, { r = 0.5, lw = cross.lw / 2, s = tileSize / 2, a = 0.1 })
   table.insert(self.deathCrosses, cross)
+
+  self:spawnShockwave(self.player:midX(), self.player:midY(), 0.02, 0.1, 0.07, 1)
 
   if #self.deathCrosses > maxCrosses then
     self.tweens:to(self.deathCrosses[1], 2, { a = 0 })
@@ -209,6 +229,20 @@ function game:win()
   self.won = true
   self.winEffect = 0
   self.tweens:to(self, 2, { winEffect = 0.1 })
+end
+
+function game:spawnShockwave(x, y, startRadius, endRadius, width, lifetime)
+  local shockwave = {
+    x = x,
+    y = y,
+    startRadius = startRadius,
+    endRadius = endRadius,
+    width = width,
+    lifetime = lifetime,
+    life = 0
+  }
+  self.tweens:to(shockwave, lifetime, { life = lifetime })
+  table.insert(self.shockwaves, shockwave)
 end
 
 function game:update(dt)
@@ -237,6 +271,7 @@ function game:update(dt)
       elseif col.other.key then
         self:removeObject(col.other)
         self.keysCount = self.keysCount + 1
+        self:spawnShockwave(col.other:midX(), col.other:midY(), 0, 0.05, 0.05, 0.5)
       end
     end
 
@@ -273,13 +308,33 @@ function game:update(dt)
     self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
   end
 
+  self.cameraX, self.cameraY = lg.getWidth() / 2 - self.level.width * tileSize / 2,
+      lg.getHeight() / 2 - self.level.height * tileSize / 2
+
   self.tweens:update(dt)
+
+  for i = #self.shockwaves, 1, -1 do
+    if self.shockwaves[i].life >= self.shockwaves[i].lifetime then
+      table.remove(self.shockwaves, i)
+    end
+  end
 end
 
 function game:keypressed(k)
   if k == "space" and self.won then
     self:startLevel(require("levels." .. self.level.nextLevel))
   end
+end
+
+function game:screenPass(shader)
+  lg.setCanvas(self.sideCanvas)
+  lg.clear(0, 0, 0, 0)
+  lg.setShader(shader)
+  lg.setColor(1, 1, 1)
+  lg.draw(self.gameCanvas)
+  lg.setShader()
+  lg.setCanvas()
+  self.gameCanvas, self.sideCanvas = self.sideCanvas, self.gameCanvas
 end
 
 function game:draw()
@@ -291,7 +346,7 @@ function game:draw()
   end
 
   lg.push()
-  lg.translate(lg.getWidth() / 2 - self.level.width * tileSize / 2, lg.getHeight() / 2 - self.level.height * tileSize / 2)
+  lg.translate(self.cameraX, self.cameraY)
 
   for _, c in ipairs(self.deathCrosses) do
     lg.push()
@@ -407,7 +462,19 @@ function game:draw()
   lg.setColor(1, 1, 1, 0.6)
   lg.draw(self.trailCanvas2)
 
-  lg.setShader(self.invertShader)
+  for _, shock in ipairs(self.shockwaves) do
+    local life = shock.life / shock.lifetime
+    local radius = lerp(shock.startRadius, shock.endRadius, life)
+    self.shockwaveShader:send("minRadius", radius)
+    self.shockwaveShader:send("maxRadius", radius + shock.width)
+    self.shockwaveShader:send("mul", 0.03 * (1 - life))
+    self.shockwaveShader:send("center",
+      { (shock.x + self.cameraX) / self.gameCanvas:getWidth(), (shock.y + self.cameraY) / self.gameCanvas:getHeight() })
+    self:screenPass(self.shockwaveShader)
+  end
+
+  self:screenPass(self.invertShader)
+
   lg.setColor(1, 1, 1)
   lg.draw(self.gameCanvas)
   if self.won then
@@ -422,7 +489,6 @@ function game:draw()
         self.gameCanvas:getWidth() / 2, self.gameCanvas:getHeight() / 2)
     end
   end
-  lg.setShader()
 
   frameCount = frameCount + 1
 end
