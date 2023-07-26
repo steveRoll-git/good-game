@@ -19,7 +19,8 @@ local quadDitherShader = lg.newShader [[
 ]]
 local quadDitherIndex = 0
 
-local noiseShader = lg.newShader("shaders/noise.glsl")
+local noiseShader = lg.newShader(love.filesystem.read("shaders/snoise.glsl") ..
+  love.filesystem.read("shaders/noiseBackground.glsl"))
 
 local tileSize = 48
 

@@ -1,4 +1,3 @@
-uniform vec3 offset;
 
 //	Simplex 3D Noise 
 //	by Ian McEwan, Ashima Arts
@@ -73,9 +72,4 @@ float snoise(vec3 v){
   m = m * m;
   return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), 
                                 dot(p2,x2), dot(p3,x3) ) );
-}
-
-vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
-    float pixel = snoise(vec3(sc / 100, 0) + offset);
-    return vec4(pixel, pixel, pixel, 1);
 }
