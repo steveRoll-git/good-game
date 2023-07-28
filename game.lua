@@ -53,6 +53,9 @@ local titleScale = 3
 
 local timerFont = lg.newFont(150)
 
+-- player's color will start changing when its speed is greater than (breakSpeed - this)
+local breakFadeStart = 50
+
 local function centerPos(o, x, y)
   return
       x * tileSize + tileSize / 2 - o.w / 2,
@@ -168,7 +171,9 @@ function game:startLevel(level)
     h = tileSize * .35,
     vx = 0,
     vy = 0,
+    speed = 0,
     accel = 1,
+    breakSpeed = 180,
     color = { 1, 1, 1 }
   }
   self.player.x, self.player.y = centerPos(self.player, level.playerX, level.playerY)
@@ -297,10 +302,9 @@ function game:update(dt)
     end
     self.levelTime = love.timer.getTime() - self.startTime
 
-    local speed = math.abs(self.player.vx) / 2 + math.abs(self.player.vy) / 2
-    local color = (1.5 - speed / 50) ^ 2
-    self.player.color[2] = color
-    self.player.color[3] = color
+    self.player.speed = math.sqrt(self.player.vx ^ 2 + self.player.vy ^ 2)
+    local factor = (self.player.speed - self.player.breakSpeed + breakFadeStart) / breakFadeStart
+    self.player.color[3] = lerp(1, 0, factor)
   end
 
   if self.restartTimer then
@@ -411,6 +415,9 @@ function game:draw()
         lg.setStencilTest()
         lg.pop()
       end
+    elseif o == self.player and self.player.speed >= self.player.breakSpeed then
+      lg.setColor(o.color[1], o.color[2], o.color[3], 0.3)
+      lg.rectangle("fill", o.x - 5, o.y - 5, o.w + 10, o.h + 10)
     end
   end
 
