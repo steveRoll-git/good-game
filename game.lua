@@ -4,6 +4,8 @@ local lg = love.graphics
 local bump = require "bump"
 local flux = require "flux"
 
+local bouncer = require "entities.bouncer"
+
 local frameCount = 0
 
 local quadDitherShader = lg.newShader [[
@@ -161,6 +163,10 @@ function game:startLevel(level)
       }
       key.x, key.y = centerPos(key, e.x, e.y)
       self:addObject(key)
+    elseif e.type == "bouncer" then
+      local b = bouncer:new(self)
+      b.x, b.y = centerPos(b, e.x, e.y)
+      self:addObject(b)
     else
       error("what entity type '" .. e.type .. "'????")
     end
@@ -174,7 +180,21 @@ function game:startLevel(level)
     speed = 0,
     accel = 1,
     breakSpeed = 180,
-    color = { 1, 1, 1 }
+    color = { 1, 1, 1 },
+    moveFilter = playerMoveFilter,
+    onCollision = function(_, col)
+      if col.other.hurt then
+        self:die()
+      end
+
+      if col.other.goal and self.keysCount >= self.level.neededKeys then
+        self.touchingGoal = true
+      elseif col.other.key then
+        self:removeObject(col.other)
+        self.keysCount = self.keysCount + 1
+        self:spawnShockwave(col.other:midX(), col.other:midY(), 0, 0.05, 0.05, 0.5)
+      end
+    end
   }
   self.player.x, self.player.y = centerPos(self.player, level.playerX, level.playerY)
 
@@ -268,23 +288,20 @@ function game:update(dt)
       end
     end
 
-    local cols
-    self.player.x, self.player.y, cols = self.world:move(self.player, self.player.x + self.player.vx * dt,
-      self.player.y + self.player.vy * dt, playerMoveFilter)
-
     self.touchingGoal = false
-    for _, col in ipairs(cols) do
-      if col.other.hurt then
-        self:die()
-        break
-      end
 
-      if col.other.goal and self.keysCount >= self.level.neededKeys then
-        self.touchingGoal = true
-      elseif col.other.key then
-        self:removeObject(col.other)
-        self.keysCount = self.keysCount + 1
-        self:spawnShockwave(col.other:midX(), col.other:midY(), 0, 0.05, 0.05, 0.5)
+    for _, obj in ipairs(self.objects) do
+      if obj.update then
+        obj:update(dt)
+      end
+      if obj.vx then
+        local cols
+        obj.x, obj.y, cols = self.world:move(obj, obj.x + obj.vx * dt, obj.y + obj.vy * dt, obj.moveFilter)
+        if obj.onCollision then
+          for _, col in ipairs(cols) do
+            obj:onCollision(col)
+          end
+        end
       end
     end
 
@@ -372,8 +389,12 @@ function game:draw()
   end
 
   for _, o in ipairs(self.objects) do
-    lg.setColor(o.color)
-    lg.rectangle("fill", o.x, o.y, o.w, o.h)
+    if o.draw then
+      o:draw()
+    else
+      lg.setColor(o.color)
+      lg.rectangle("fill", o.x, o.y, o.w, o.h)
+    end
 
     if o.goal then
       if self.keysCount < self.level.neededKeys then

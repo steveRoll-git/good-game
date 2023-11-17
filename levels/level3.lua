@@ -16,6 +16,11 @@ return {
       type = "goal",
       x = 5,
       y = 1,
+    },
+    {
+      type = "bouncer",
+      x = 7,
+      y = 1,
     }
   },
   neededKeys = 0,
