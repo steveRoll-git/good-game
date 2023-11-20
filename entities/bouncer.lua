@@ -3,8 +3,13 @@ local lg = love.graphics
 
 local w, h = 36, 36
 
-local chaseDist = 48 * 4
-local shookDuration = 1
+local chaseDist = 48 * 5
+local shookDuration = 0.8
+local normalSpeed = 45
+local friction = 0.4
+local slowAcceleration = 4
+
+local font = lg.newFont(32)
 
 local sheet = lg.newImage("images/bouncer.png")
 
@@ -20,8 +25,8 @@ function bouncer:init(game, x, y)
   self.x, self.y = x, y
   self.w, self.h = w, h
   self.vx, self.vy = 32, 32
+  self.speed = 0
   self.hurt = true
-  self.quad = 1
   self.shookTimer = 0
 end
 
@@ -43,7 +48,6 @@ function bouncer:update(dt)
   local player = self.game.player
   if self.shookTimer <= 0 and Dist(self:midX(), self:midY(), player:midX(), player:midY()) <= chaseDist then
     self.chasing = true
-    self.quad = 3
     local dx, dy = Normalize(player:midX() - self:midX(), player:midY() - self:midY())
     self.vx = self.vx + dx * 100 * dt
     self.vy = self.vy + dy * 100 * dt
@@ -52,8 +56,16 @@ function bouncer:update(dt)
   end
   if self.shookTimer > 0 then
     self.shookTimer = self.shookTimer - dt
-    if self.shookTimer <= 0 then
-      self.quad = 1
+  end
+  self.speed = math.sqrt(self.vx ^ 2 + self.vy ^ 2)
+  if not self.chasing then
+    if self.speed > normalSpeed then
+      self.vx = self.vx * (1 / (1 + (dt * friction)))
+      self.vy = self.vy * (1 / (1 + (dt * friction)))
+    elseif self.speed < normalSpeed - 1 then
+      local dx, dy = Normalize(self.vx, self.vy)
+      self.vx = self.vx + dx * slowAcceleration * dt
+      self.vy = self.vy + dy * slowAcceleration * dt
     end
   end
 end
@@ -61,9 +73,15 @@ end
 function bouncer:draw()
   lg.setColor(1, 1, 1)
   lg.draw(sheet,
-    quads[self.quad],
+    quads[
+      self.chasing and 3 or (self.shookTimer > 0 and 2 or 1)
+    ],
     self.x + RandFloat(-self.shookTimer, self.shookTimer) * 2,
     self.y + RandFloat(-self.shookTimer, self.shookTimer) * 2)
+  if self.printSpeed then
+    lg.setFont(font)
+    lg.print(math.floor(self.speed), self.x, self.y)
+  end
 end
 
 return bouncer
