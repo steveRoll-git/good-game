@@ -178,7 +178,7 @@ function game:startLevel(level)
     vx = 0,
     vy = 0,
     speed = 0,
-    accel = 1,
+    accel = 60,
     breakSpeed = 180,
     color = { 1, 1, 1 },
     moveFilter = playerMoveFilter,
@@ -282,8 +282,8 @@ function game:update(dt)
   if not self.dead and not self.won then
     for key, dir in pairs(moveDirs) do
       if love.keyboard.isDown(key) then
-        self.player.vx = self.player.vx + self.player.accel * (dir.x or 0)
-        self.player.vy = self.player.vy + self.player.accel * (dir.y or 0)
+        self.player.vx = self.player.vx + self.player.accel * (dir.x or 0) * dt
+        self.player.vy = self.player.vy + self.player.accel * (dir.y or 0) * dt
         self.firstMoved = true
       end
     end
