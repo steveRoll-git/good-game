@@ -1,5 +1,5 @@
 return {
-  title = "Second",
+  title = "Introduction",
   width = 10,
   height = 7,
   tiles = {
@@ -21,9 +21,24 @@ return {
       type = "bouncer",
       x = 7,
       y = 1,
-    }
+    },
+    {
+      type = "key",
+      x = 1,
+      y = 5,
+    },
+    {
+      type = "key",
+      x = 4,
+      y = 5,
+    },
+    {
+      type = "key",
+      x = 3,
+      y = 3,
+    },
   },
-  neededKeys = 0,
+  neededKeys = 3,
   playerX = 1,
   playerY = 1,
 }

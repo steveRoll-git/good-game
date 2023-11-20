@@ -1,5 +1,5 @@
 return {
-  title = "Level1",
+  title = "Objects of Interest",
   width = 7,
   height = 7,
   tiles = {
