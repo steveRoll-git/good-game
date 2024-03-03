@@ -84,6 +84,7 @@ function game:enter(_, level)
   self.gameCanvas = lg.newCanvas()
   self.sideCanvas = lg.newCanvas()
   self.subCanvas = lg.newCanvas()
+  self.failCanvas = lg.newCanvas()
 
   self.invertShader = lg.newShader [[
     vec4 lerp(vec4 a, vec4 b, float t) {
@@ -100,6 +101,13 @@ function game:enter(_, level)
   ]]
   self.invertShader:send("invertTexture", self.subCanvas)
   self.shockwaveShader = lg.newShader("shaders/shockwave.glsl")
+  self.restartDistortShader = lg.newShader("shaders/restartDistort.glsl")
+  self.restartEffect = {
+    y = 0,
+    size = 0.22,
+    distortion = 0.15,
+    enabled = false
+  }
 
   self.trailCanvas1 = lg.newCanvas()
   self.trailCanvas2 = lg.newCanvas()
@@ -228,7 +236,7 @@ end
 
 function game:die()
   self.dead = true
-  self.restartTimer = 1
+  self.restartTimer = 0.8
   self:removeObject(self.player)
 
   local cross = {
@@ -284,7 +292,7 @@ function game:update(dt)
       self.player.x, self.player.y = love.mouse.getX() - self.cameraX, love.mouse.getY() - self.cameraY
       self.world:update(self.player, self.player.x, self.player.y)
     end
-    
+
     for key, dir in pairs(moveDirs) do
       if love.keyboard.isDown(key) then
         self.player.vx = self.player.vx + self.player.accel * (dir.x or 0) * dt
@@ -332,7 +340,21 @@ function game:update(dt)
   if self.restartTimer then
     self.restartTimer = self.restartTimer - dt
     if self.restartTimer <= 0 then
-      self:startLevel(self.level)
+      self.restartTimer = nil
+      lg.setCanvas(self.failCanvas)
+      lg.clear()
+      lg.draw(self.gameCanvas)
+      lg.setCanvas()
+      self.restartEffect.enabled = true
+      self.restartEffect.y = 0
+      self.tweens:to(self.restartEffect, 0.3, { y = 1 }):ease("sinein")
+          :oncomplete(function()
+            self:startLevel(self.level)
+            self.tweens:to(self.restartEffect, 0.3, { y = 0 }):ease("sineout")
+                :oncomplete(function()
+                  self.restartEffect.enabled = false
+                end)
+          end)
     end
   end
 
@@ -475,6 +497,19 @@ function game:draw()
   end
   lg.setCanvas()
 
+  self:screenPass(self.invertShader)
+  if self.restartEffect.enabled then
+    local h = self.restartEffect.y * lg.getHeight()
+    lg.setCanvas(self.gameCanvas)
+    lg.setScissor(0, 0, lg.getWidth(), h)
+    lg.clear()
+    lg.draw(self.failCanvas)
+    lg.setScissor()
+    lg.setColor(0, 1, 0, self.restartEffect.y * 0.2)
+    lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
+    lg.setCanvas()
+  end
+
   self.trailCanvas1, self.trailCanvas2 = self.trailCanvas2, self.trailCanvas1
 
   lg.setCanvas(self.trailCanvas2)
@@ -514,7 +549,12 @@ function game:draw()
     self:screenPass(self.shockwaveShader)
   end
 
-  self:screenPass(self.invertShader)
+  if self.restartEffect.enabled then
+    self.restartDistortShader:send("yPosition", self.restartEffect.y)
+    self.restartDistortShader:send("distortion", self.restartEffect.distortion)
+    self.restartDistortShader:send("size", self.restartEffect.size)
+    self:screenPass(self.restartDistortShader)
+  end
 
   lg.setColor(1, 1, 1)
   lg.draw(self.gameCanvas)
