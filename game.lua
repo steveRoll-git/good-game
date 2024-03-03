@@ -410,7 +410,7 @@ end
 function game:draw()
   lg.setCanvas({ self.gameCanvas, stencil = true })
   if self.won then
-    lg.clear(0, 0.3, 0, 0.1)
+    lg.clear(0, 0.5, 0, self.winEffect * 1.6)
   else
     lg.clear(0, 0, 0, 0)
   end
