@@ -235,6 +235,10 @@ function game:removeObject(obj)
 end
 
 function game:die()
+  if self.dead then
+    return
+  end
+
   self.dead = true
   self.restartTimer = 0.8
   self:removeObject(self.player)
@@ -310,9 +314,19 @@ function game:update(dt)
       if obj.vx then
         local cols
         obj.x, obj.y, cols = self.world:move(obj, obj.x + obj.vx * dt, obj.y + obj.vy * dt, obj.moveFilter)
+        obj.handledCols = {}
         if obj.onCollision then
           for _, col in ipairs(cols) do
-            obj:onCollision(col)
+            if not col.other.handledCols or not col.other.handledCols[obj] then
+              obj:onCollision(col)
+              if col.other.onCollision then
+                col.other:onCollision({
+                  other = obj,
+                  normal = {x = -col.normal.x, y = -col.normal.y}
+                })
+              end
+              obj.handledCols[col.other] = true
+            end
           end
         end
       end
