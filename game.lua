@@ -280,6 +280,11 @@ end
 
 function game:update(dt)
   if not self.dead and not self.won then
+    if DebugMode and love.mouse.isDown(2) then
+      self.player.x, self.player.y = love.mouse.getX() - self.cameraX, love.mouse.getY() - self.cameraY
+      self.world:update(self.player, self.player.x, self.player.y)
+    end
+    
     for key, dir in pairs(moveDirs) do
       if love.keyboard.isDown(key) then
         self.player.vx = self.player.vx + self.player.accel * (dir.x or 0) * dt

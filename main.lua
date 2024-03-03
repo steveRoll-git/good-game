@@ -18,7 +18,10 @@ local game = require "game"
 
 Manager = roomy.new()
 
-function love.load()
+function love.load(arg)
+  if arg[1] == "debug" then
+    DebugMode = true
+  end
   Manager:hook()
-  Manager:enter(game, require "levels.level3")
+  Manager:enter(game, require "levels.level1")
 end
