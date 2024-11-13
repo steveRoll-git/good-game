@@ -396,8 +396,25 @@ function game:update(dt)
     self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
   end
 
-  self.cameraX, self.cameraY = lg.getWidth() / 2 - self.level.width * tileSize / 2,
-      lg.getHeight() / 2 - self.level.height * tileSize / 2
+  local levelWidth = self.level.width * tileSize
+  local levelHeight = self.level.height * tileSize
+
+  local cameraX, cameraY
+
+  if levelWidth > lg.getWidth() then
+    cameraX = self.player:midX()
+  else
+    cameraX = levelWidth / 2
+  end
+
+  if levelHeight > lg.getHeight() then
+    cameraY = self.player:midY()
+  else
+    cameraY = levelHeight / 2
+  end
+
+  self.cameraX = lg.getWidth() / 2 - cameraX
+  self.cameraY = lg.getHeight() / 2 - cameraY
 
   self.tweens:update(dt)
 
