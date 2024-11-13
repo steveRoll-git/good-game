@@ -13,6 +13,8 @@ function Normalize(x, y)
   return x / len, y / len
 end
 
+InterFont = "fonts/Inter-Regular.ttf"
+
 local roomy = require "roomy"
 local game = require "game"
 

@@ -50,10 +50,10 @@ end
 
 local goalDuration = 3
 
-local titleFont = lg.newFont(24)
+local titleFont = lg.newFont(InterFont, 24)
 local titleScale = 3
 
-local timerFont = lg.newFont(150)
+local timerFont = lg.newFont(InterFont, 150)
 
 -- player's color will start changing when its speed is greater than (breakSpeed - this)
 local breakFadeStart = 50
@@ -417,6 +417,12 @@ function game:screenPass(shader)
   self.gameCanvas, self.sideCanvas = self.sideCanvas, self.gameCanvas
 end
 
+function game:drawTimer()
+  lg.print(("%.2f"):format(self.levelTime),
+    lg.getWidth() / 2 - timerFont:getWidth(("4"):rep(math.max(math.log(math.floor(self.levelTime), 10), 1) + 2)) / 2,
+    lg.getHeight() / 2 - timerFont:getHeight() / 2)
+end
+
 function game:draw()
   lg.setCanvas({ self.gameCanvas, stencil = true })
   if self.won then
@@ -507,13 +513,12 @@ function game:draw()
   lg.print(self.level.title, self.textScrollX, lg.getHeight() - titleFont:getHeight() * titleScale, 0, titleScale)
   lg.setFont(timerFont)
   lg.setColor(0, 0, 0, 0.7)
-  lg.printf(("%.2f"):format(self.levelTime),
-    5,
-    lg.getHeight() / 2 - timerFont:getHeight() / 2 + 5,
-    lg.getWidth(),
-    "center")
+  lg.push()
+  lg.translate(5, 5)
+  self:drawTimer()
+  lg.pop()
   lg.setColor(1, 1, 1, 0.4)
-  lg.printf(("%.2f"):format(self.levelTime), 0, lg.getHeight() / 2 - timerFont:getHeight() / 2, lg.getWidth(), "center")
+  self:drawTimer()
   if self.won then
     lg.setFont(titleFont)
     lg.setColor(1, 1, 1)
