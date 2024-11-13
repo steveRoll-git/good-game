@@ -1,6 +1,12 @@
 local love = love
 local lg = love.graphics
 
+local function drawPremul(canvas, ...)
+  lg.setBlendMode("alpha", "premultiplied")
+  lg.draw(canvas, ...)
+  lg.setBlendMode("alpha", "alphamultiply")
+end
+
 local bump = require "bump"
 local flux = require "flux"
 
@@ -66,6 +72,14 @@ end
 
 local function lerp(a, b, t)
   return a + (b - a) * t
+end
+
+local function lerpColor(r1, g1, b1, a1, r2, g2, b2, a2, t)
+  return
+      lerp(r1, r2, t),
+      lerp(g1, g2, t),
+      lerp(b1, b2, t),
+      lerp(a1, a2, t)
 end
 
 local function objectMidX(self)
@@ -361,7 +375,7 @@ function game:update(dt)
       self.restartTimer = nil
       lg.setCanvas(self.failCanvas)
       lg.clear()
-      lg.draw(self.gameCanvas)
+      drawPremul(self.gameCanvas)
       lg.setCanvas()
       self.restartEffect.enabled = true
       self.restartEffect.y = 0
@@ -411,7 +425,7 @@ function game:screenPass(shader)
   lg.clear(0, 0, 0, 0)
   lg.setShader(shader)
   lg.setColor(1, 1, 1)
-  lg.draw(self.gameCanvas)
+  drawPremul(self.gameCanvas)
   lg.setShader()
   lg.setCanvas()
   self.gameCanvas, self.sideCanvas = self.sideCanvas, self.gameCanvas
@@ -426,7 +440,11 @@ end
 function game:draw()
   lg.setCanvas({ self.gameCanvas, stencil = true })
   if self.won then
-    lg.clear(0, 0.5, 0, self.winEffect * 1.6)
+    lg.clear(lerpColor(
+      0, 0, 0, 0,
+      0, 0.5, 0, 1,
+      self.winEffect * 1.6
+    ))
   else
     lg.clear(0, 0, 0, 0)
   end
@@ -506,18 +524,18 @@ function game:draw()
   lg.clear(0, 0, 1, 1)
   local a = (love.timer.getTime() / 3) % (math.pi * 2)
   local d = math.sin(love.timer.getTime()) * 7
-  lg.setColor(1, 1, 1, math.abs(d / 5) / 4)
+  lg.setColor(1, 1, 1, math.abs(d / 5) / 6)
   lg.draw(self.gameCanvas, math.cos(a) * d, math.sin(a) * d)
   lg.setColor(1, 1, 1)
   lg.setFont(titleFont)
   lg.print(self.level.title, self.textScrollX, lg.getHeight() - titleFont:getHeight() * titleScale, 0, titleScale)
   lg.setFont(timerFont)
-  lg.setColor(0, 0, 0, 0.7)
+  lg.setColor(0, 0, 0, 0.2)
   lg.push()
   lg.translate(5, 5)
   self:drawTimer()
   lg.pop()
-  lg.setColor(1, 1, 1, 0.4)
+  lg.setColor(1, 1, 1, 0.3)
   self:drawTimer()
   if self.won then
     lg.setFont(titleFont)
@@ -532,9 +550,9 @@ function game:draw()
     lg.setCanvas(self.gameCanvas)
     lg.setScissor(0, 0, lg.getWidth(), h)
     lg.clear()
-    lg.draw(self.failCanvas)
+    drawPremul(self.failCanvas)
     lg.setScissor()
-    lg.setColor(0, 1, 0, self.restartEffect.y * 0.2)
+    lg.setColor(0, 1, 0, self.restartEffect.y * 0.1)
     lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
     lg.setCanvas()
   end
@@ -586,7 +604,7 @@ function game:draw()
   end
 
   lg.setColor(1, 1, 1)
-  lg.draw(self.gameCanvas)
+  drawPremul(self.gameCanvas)
   if self.won then
     for i = 1, 5 do
       lg.setColor(1, 1, 1, 0.1)
