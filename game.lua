@@ -290,6 +290,10 @@ function game:spawnShockwave(x, y, startRadius, endRadius, width, lifetime)
   table.insert(self.shockwaves, shockwave)
 end
 
+function game:gotoNextLevel()
+  self:startLevel(require("levels." .. self.level.nextLevel))
+end
+
 function game:update(dt)
   if not self.dead and not self.won then
     if DebugMode and love.mouse.isDown(2) then
@@ -322,7 +326,7 @@ function game:update(dt)
               if col.other.onCollision then
                 col.other:onCollision({
                   other = obj,
-                  normal = {x = -col.normal.x, y = -col.normal.y}
+                  normal = { x = -col.normal.x, y = -col.normal.y }
                 })
               end
               obj.handledCols[col.other] = true
@@ -392,7 +396,13 @@ end
 
 function game:keypressed(k)
   if k == "space" and self.won then
-    self:startLevel(require("levels." .. self.level.nextLevel))
+    self:gotoNextLevel()
+  end
+
+  if DebugMode then
+    if k == "f2" then
+      self:gotoNextLevel()
+    end
   end
 end
 
