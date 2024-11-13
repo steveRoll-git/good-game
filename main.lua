@@ -1,4 +1,4 @@
-require "class"
+require "lib.class"
 
 function RandFloat(min, max)
   return min + (max - min) * love.math.random()
@@ -15,8 +15,8 @@ end
 
 InterFont = "fonts/Inter-Regular.ttf"
 
-local roomy = require "roomy"
-local game = require "game"
+local roomy = require "lib.roomy"
+local game = require "states.game"
 
 Manager = roomy.new()
 

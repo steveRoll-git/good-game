@@ -7,8 +7,8 @@ local function drawPremul(canvas, ...)
   lg.setBlendMode("alpha", "alphamultiply")
 end
 
-local bump = require "bump"
-local flux = require "flux"
+local bump = require "lib.bump"
+local flux = require "lib.flux"
 
 local bouncer = require "entities.bouncer"
 
