@@ -6,7 +6,7 @@ uniform float yPosition;
 
 vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
     if(tc.y >= yPosition - size && tc.y <= yPosition + size){
-        tc.x -= (cos((tc.y - yPosition) / size * PI) + 1) / 2 * distortion;
+        tc.x -= (cos((tc.y - yPosition) / size * PI) + 1) / 2 * distortion * (1 - pow(1 - yPosition, 2));
     }
     return Texel(texture, tc) * color;
 }
