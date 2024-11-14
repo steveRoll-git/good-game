@@ -59,7 +59,7 @@ local goalDuration = 3
 local titleFont = lg.newFont(InterFont, 24)
 local titleScale = 3
 
-local timerFont = lg.newFont(InterFont, 150)
+local timerFont = lg.newFont(InterFont, 48)
 
 -- player's color will start changing when its speed is greater than (breakSpeed - this)
 local breakFadeStart = 50
@@ -472,9 +472,11 @@ function game:restartCrop()
 end
 
 function game:drawTimer()
-  lg.print(("%.2f"):format(self.levelTime),
-    lg.getWidth() / 2 - timerFont:getWidth(("4"):rep(math.max(math.log(math.floor(self.levelTime), 10), 1) + 2)) / 2,
-    lg.getHeight() / 2 - timerFont:getHeight() / 2)
+  lg.print(
+    ("%.2f"):format(self.levelTime),
+    (math.ceil(math.max(math.log(self.levelTime, 10), 1)) * timerFont:getWidth("4")) -
+    timerFont:getWidth(tostring(math.floor(self.levelTime)))
+  )
 end
 
 function game:draw()
@@ -580,12 +582,12 @@ function game:draw()
   lg.setFont(titleFont)
   lg.print(self.level.title, self.textScrollX, lg.getHeight() - titleFont:getHeight() * titleScale, 0, titleScale)
   lg.setFont(timerFont)
-  lg.setColor(0, 0, 0, 0.2)
+  lg.setColor(0, 0, 0, 0.6)
   lg.push()
   lg.translate(5, 5)
   self:drawTimer()
   lg.pop()
-  lg.setColor(1, 1, 1, 0.3)
+  lg.setColor(1, 1, 1, 0.4)
   self:drawTimer()
   if self.won then
     lg.setFont(titleFont)
