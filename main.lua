@@ -1,3 +1,15 @@
+io.stdout:setvbuf("no")
+
+DebugMode = arg[2] == "debug"
+IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and DebugMode
+if IS_DEBUG then
+  require("lldebugger").start()
+
+  function love.errorhandler(msg)
+    error(msg, 2)
+  end
+end
+
 require "lib.class"
 
 function RandFloat(min, max)
