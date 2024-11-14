@@ -375,14 +375,15 @@ function game:update(dt)
       self.restartTimer = nil
       lg.setCanvas(self.failCanvas)
       lg.clear()
+      self:drawNoiseBackground()
       drawPremul(self.gameCanvas)
       lg.setCanvas()
       self.restartEffect.enabled = true
       self.restartEffect.y = 0
-      self.tweens:to(self.restartEffect, 0.3, { y = 1 }):ease("sinein")
+      self.tweens:to(self.restartEffect, 0.5, { y = 1 }):ease("sinein")
           :oncomplete(function()
             self:startLevel(self.level)
-            self.tweens:to(self.restartEffect, 0.3, { y = 0 }):ease("sineout")
+            self.tweens:to(self.restartEffect, 0.5, { y = 0 }):ease("sineout")
                 :oncomplete(function()
                   self.restartEffect.enabled = false
                 end)
@@ -448,6 +449,25 @@ function game:screenPass(shader)
   self.gameCanvas, self.sideCanvas = self.sideCanvas, self.gameCanvas
 end
 
+function game:drawNoiseBackground()
+  lg.setColor(1, 1, 1, 0.5)
+  lg.setShader(noiseShader)
+  noiseShader:send("offset", {
+    love.timer.getTime() / 20 - self.cameraX / 500,
+    love.timer.getTime() / 20 - self.cameraY / 500,
+    love.timer.getTime() / 10
+  })
+  lg.rectangle("fill", 0, 0, lg.getDimensions())
+  lg.setShader()
+end
+
+function game:restartCrop()
+  if self.restartEffect.enabled then
+    local h = self.restartEffect.y * lg.getHeight()
+    lg.setScissor(0, h, lg.getWidth(), lg.getHeight() - h)
+  end
+end
+
 function game:drawTimer()
   lg.print(("%.2f"):format(self.levelTime),
     lg.getWidth() / 2 - timerFont:getWidth(("4"):rep(math.max(math.log(math.floor(self.levelTime), 10), 1) + 2)) / 2,
@@ -455,6 +475,12 @@ function game:drawTimer()
 end
 
 function game:draw()
+  if self.restartEffect.enabled then
+    self.restartDistortShader:send("yPosition", self.restartEffect.y)
+    self.restartDistortShader:send("distortion", self.restartEffect.distortion)
+    self.restartDistortShader:send("size", self.restartEffect.size)
+  end
+
   lg.setCanvas({ self.gameCanvas, stencil = true })
   if self.won then
     lg.clear(lerpColor(
@@ -561,19 +587,6 @@ function game:draw()
   end
   lg.setCanvas()
 
-  self:screenPass(self.invertShader)
-  if self.restartEffect.enabled then
-    local h = self.restartEffect.y * lg.getHeight()
-    lg.setCanvas(self.gameCanvas)
-    lg.setScissor(0, 0, lg.getWidth(), h)
-    lg.clear()
-    drawPremul(self.failCanvas)
-    lg.setScissor()
-    lg.setColor(0, 1, 0, self.restartEffect.y * 0.1)
-    lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
-    lg.setCanvas()
-  end
-
   self.trailCanvas1, self.trailCanvas2 = self.trailCanvas2, self.trailCanvas1
 
   lg.setCanvas(self.trailCanvas2)
@@ -583,7 +596,7 @@ function game:draw()
 
   lg.setCanvas(self.trailCanvas1)
   lg.clear(0, 0, 0, 0)
-  lg.setColor(1, 1, 1, 255 / 255)
+  lg.setColor(1, 1, 1)
   if frameCount % 5 == 0 then
     quadDitherIndex = (quadDitherIndex + 1) % 4
     quadDitherShader:send("idx", quadDitherIndex)
@@ -593,14 +606,17 @@ function game:draw()
   lg.setShader()
   lg.setCanvas()
 
-  lg.setColor(1, 1, 1)
-  lg.setShader(noiseShader)
-  noiseShader:send("offset", { love.timer.getTime() / 10, love.timer.getTime() / 10, love.timer.getTime() / 10 })
-  lg.rectangle("fill", 0, 0, lg.getDimensions())
-  lg.setShader()
 
+  self:restartCrop()
   lg.setColor(1, 1, 1, 0.6)
+  if self.restartEffect.enabled then
+    lg.setShader(self.restartDistortShader)
+  end
   lg.draw(self.trailCanvas2)
+  lg.setShader()
+  lg.setScissor()
+
+  self:screenPass(self.invertShader)
 
   for _, shock in ipairs(self.shockwaves) do
     local life = shock.life / shock.lifetime
@@ -608,17 +624,30 @@ function game:draw()
     self.shockwaveShader:send("minRadius", radius)
     self.shockwaveShader:send("maxRadius", radius + shock.width)
     self.shockwaveShader:send("mul", 0.03 * (1 - life))
-    self.shockwaveShader:send("center",
-      { (shock.x + self.cameraX) / self.gameCanvas:getWidth(), (shock.y + self.cameraY) / self.gameCanvas:getHeight() })
+    self.shockwaveShader:send("center", {
+      (shock.x + self.cameraX) / self.gameCanvas:getWidth(),
+      (shock.y + self.cameraY) / self.gameCanvas:getHeight()
+    })
     self:screenPass(self.shockwaveShader)
   end
 
   if self.restartEffect.enabled then
-    self.restartDistortShader:send("yPosition", self.restartEffect.y)
-    self.restartDistortShader:send("distortion", self.restartEffect.distortion)
-    self.restartDistortShader:send("size", self.restartEffect.size)
+    local h = self.restartEffect.y * lg.getHeight()
+    lg.setCanvas(self.gameCanvas)
+    lg.setScissor(0, 0, lg.getWidth(), h)
+    lg.clear()
+    drawPremul(self.failCanvas)
+    lg.setScissor()
+    lg.setColor(0, 1, 0, self.restartEffect.y * 0.05)
+    lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
+    lg.setCanvas()
+
     self:screenPass(self.restartDistortShader)
   end
+
+  self:restartCrop()
+  self:drawNoiseBackground()
+  lg.setScissor()
 
   lg.setColor(1, 1, 1)
   drawPremul(self.gameCanvas)
