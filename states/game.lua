@@ -119,7 +119,8 @@ function game:enter(_, level)
   self.restartEffect = {
     y = 0,
     size = 0.22,
-    distortion = 0.15,
+    distortion = 0.1,
+    direction = 1,
     enabled = false
   }
 
@@ -373,17 +374,19 @@ function game:update(dt)
     self.restartTimer = self.restartTimer - dt
     if self.restartTimer <= 0 then
       self.restartTimer = nil
-      lg.setCanvas(self.failCanvas)
-      lg.clear()
-      self:drawNoiseBackground()
-      drawPremul(self.gameCanvas)
-      lg.setCanvas()
       self.restartEffect.enabled = true
-      self.restartEffect.y = 0
-      self.tweens:to(self.restartEffect, 0.5, { y = 1 }):ease("sinein")
+      self.restartEffect.y = -self.restartEffect.size
+      self.restartEffect.direction = 1
+      self.tweens:to(self.restartEffect, 0.7, { y = 1 + self.restartEffect.size }):ease("linear")
           :oncomplete(function()
+            self.restartEffect.direction = -1
+            lg.setCanvas(self.failCanvas)
+            lg.clear()
+            lg.setColor(1, 1, 1)
+            drawPremul(self.gameCanvas)
+            lg.setCanvas()
             self:startLevel(self.level)
-            self.tweens:to(self.restartEffect, 0.5, { y = 0 }):ease("sineout")
+            self.tweens:to(self.restartEffect, 0.7, { y = -self.restartEffect.size }):ease("linear")
                 :oncomplete(function()
                   self.restartEffect.enabled = false
                 end)
@@ -462,9 +465,9 @@ function game:drawNoiseBackground()
 end
 
 function game:restartCrop()
-  if self.restartEffect.enabled then
+  if self.restartEffect.enabled and self.restartEffect.direction == -1 then
     local h = self.restartEffect.y * lg.getHeight()
-    lg.setScissor(0, h, lg.getWidth(), lg.getHeight() - h)
+    lg.setScissor(0, h, lg.getWidth(), math.max(lg.getHeight() - h, 0))
   end
 end
 
@@ -490,6 +493,10 @@ function game:draw()
     ))
   else
     lg.clear(0, 0, 0, 0)
+  end
+
+  if self.restartEffect.enabled then
+    self:drawNoiseBackground()
   end
 
   lg.push()
@@ -632,22 +639,24 @@ function game:draw()
   end
 
   if self.restartEffect.enabled then
-    local h = self.restartEffect.y * lg.getHeight()
-    lg.setCanvas(self.gameCanvas)
-    lg.setScissor(0, 0, lg.getWidth(), h)
-    lg.clear()
-    drawPremul(self.failCanvas)
-    lg.setScissor()
-    lg.setColor(0, 1, 0, self.restartEffect.y * 0.05)
-    lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
-    lg.setCanvas()
-
+    if self.restartEffect.direction == -1 then
+      local h = math.max(self.restartEffect.y * lg.getHeight(), 0)
+      lg.setCanvas(self.gameCanvas)
+      lg.setScissor(0, 0, lg.getWidth(), h)
+      lg.clear()
+      lg.setColor(1, 1, 1)
+      drawPremul(self.failCanvas)
+      lg.setScissor()
+      lg.setCanvas()
+    end
     self:screenPass(self.restartDistortShader)
   end
 
-  self:restartCrop()
-  self:drawNoiseBackground()
-  lg.setScissor()
+  if not self.restartEffect.enabled then
+    self:restartCrop()
+    self:drawNoiseBackground()
+    lg.setScissor()
+  end
 
   lg.setColor(1, 1, 1)
   drawPremul(self.gameCanvas)
@@ -662,6 +671,11 @@ function game:draw()
         nil,
         self.gameCanvas:getWidth() / 2, self.gameCanvas:getHeight() / 2)
     end
+  end
+
+  if self.restartEffect.enabled then
+    lg.setColor(0, 1, 0, self.restartEffect.y * 0.05)
+    lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
   end
 
   frameCount = frameCount + 1
