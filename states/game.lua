@@ -14,17 +14,7 @@ local bouncer = require "entities.bouncer"
 
 local frameCount = 0
 
-local quadDitherShader = lg.newShader [[
-  uniform number idx;
-
-  vec4 effect(vec4 color, Image texture, vec2 tc, vec2 sc) {
-    float ox = floor(mod(idx / 2 + 0.5, 2));
-    float oy = floor(mod(idx / 2 + 0.11, 2));
-    float fac = (mod(sc.x + ox, 2) + mod(sc.y + oy, 2));
-    vec4 pixel = Texel(texture, tc) * color;
-    return pixel * vec4(1, 1, 1, fac * 0.9);
-  }
-]]
+local quadDitherShader = lg.newShader("shaders/quadDither.glsl")
 local quadDitherIndex = 0
 
 local noiseShader = lg.newShader(love.filesystem.read("shaders/snoise.glsl") ..
@@ -127,6 +117,13 @@ function game:enter(_, level)
     direction = 1,
     enabled = false
   }
+
+  self.cameraX = 0
+  self.cameraY = 0
+  self.prevCameraX = self.cameraX
+  self.prevCameraY = self.cameraY
+  self.cameraDeltaRemX = 0
+  self.cameraDeltaRemY = 0
 
   self.trailCanvas1 = lg.newCanvas()
   self.trailCanvas2 = lg.newCanvas()
@@ -609,15 +606,26 @@ function game:draw()
   lg.draw(self.gameCanvas)
   lg.setCanvas()
 
+  self.cameraDeltaRemX = self.cameraDeltaRemX + self.cameraX - self.prevCameraX
+  local deltaX = math.floor(self.cameraDeltaRemX)
+  self.cameraDeltaRemX = self.cameraDeltaRemX - deltaX
+  self.cameraDeltaRemY = self.cameraDeltaRemY + self.cameraY - self.prevCameraY
+  local deltaY = math.floor(self.cameraDeltaRemY)
+  self.cameraDeltaRemY = self.cameraDeltaRemY - deltaY
+
   lg.setCanvas(self.trailCanvas1)
   lg.clear(0, 0, 0, 0)
   lg.setColor(1, 1, 1)
   if frameCount % 5 == 0 then
     quadDitherIndex = (quadDitherIndex + 1) % 4
     quadDitherShader:send("idx", quadDitherIndex)
+    quadDitherShader:send("offset", { math.floor(self.cameraX), math.floor(self.cameraY) })
     lg.setShader(quadDitherShader)
   end
-  lg.draw(self.trailCanvas2)
+  lg.draw(
+    self.trailCanvas2,
+    deltaX,
+    deltaY)
   lg.setShader()
   lg.setCanvas()
 
@@ -685,6 +693,8 @@ function game:draw()
     lg.setColor(0, 1, 0, self.restartEffect.y * 0.05)
     lg.rectangle("fill", 0, 0, self.gameCanvas:getDimensions())
   end
+
+  self.prevCameraX, self.prevCameraY = self.cameraX, self.cameraY
 
   frameCount = frameCount + 1
 end
