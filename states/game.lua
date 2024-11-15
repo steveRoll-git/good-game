@@ -82,6 +82,10 @@ local function lerpColor(r1, g1, b1, a1, r2, g2, b2, a2, t)
       lerp(a1, a2, t)
 end
 
+local function clamp(x, min, max)
+  return math.min(math.max(x, min), max)
+end
+
 local function objectMidX(self)
   return self.x + self.w / 2
 end
@@ -406,13 +410,13 @@ function game:update(dt)
   local cameraX, cameraY
 
   if levelWidth > lg.getWidth() then
-    cameraX = self.player:midX()
+    cameraX = clamp(self.player:midX(), lg.getWidth() / 2, levelWidth - lg.getWidth() / 2)
   else
     cameraX = levelWidth / 2
   end
 
   if levelHeight > lg.getHeight() then
-    cameraY = self.player:midY()
+    cameraY = clamp(self.player:midY(), lg.getHeight() / 2, levelHeight - lg.getHeight() / 2)
   else
     cameraY = levelHeight / 2
   end
