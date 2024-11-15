@@ -33,15 +33,15 @@ local game = require "states.game"
 Manager = roomy.new()
 
 function love.load(arg)
-  local currentLevel = "levels.level1"
+  local currentLevel = 1
   if arg[1] == "debug" then
     DebugMode = true
     for i = 1, #arg do
       if arg[i] == "-level" then
-        currentLevel = arg[i + 1]
+        currentLevel = tonumber(arg[i + 1]) or 0
       end
     end
   end
   Manager:hook()
-  Manager:enter(game, require(currentLevel))
+  Manager:enter(game, currentLevel)
 end

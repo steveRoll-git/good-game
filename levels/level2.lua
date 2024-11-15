@@ -31,5 +31,4 @@ return {
   neededKeys = 2,
   playerX = 1,
   playerY = 3,
-  nextLevel = "level3",
 }

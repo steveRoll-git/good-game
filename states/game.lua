@@ -10,6 +10,8 @@ end
 local bump = require "lib.bump"
 local flux = require "lib.flux"
 
+local levels = require "levels"
+
 local bouncer = require "entities.bouncer"
 
 local frameCount = 0
@@ -86,7 +88,7 @@ end
 
 local game = {}
 
-function game:enter(_, level)
+function game:enter(_, levelIndex)
   self.tweens = flux.group()
 
   self.gameCanvas = lg.newCanvas()
@@ -128,14 +130,15 @@ function game:enter(_, level)
   self.trailCanvas1 = lg.newCanvas()
   self.trailCanvas2 = lg.newCanvas()
 
-  self.scrollText = level.title
   self.textScrollX = 0
   self.textY = love.math.random(0, lg.getHeight() - titleFont:getHeight() * titleScale)
 
   self.shockwaves = {}
   self.shakeAmount = 0
 
-  self:startLevel(level)
+  self.levelIndex = levelIndex
+
+  self:startLevel(levels[levelIndex])
 end
 
 function game:startLevel(level)
@@ -230,6 +233,8 @@ function game:startLevel(level)
   self.startTime = love.timer.getTime()
   self.firstMoved = false
 
+  self.scrollText = level.title
+
   self:addObject(self.player)
 end
 
@@ -307,7 +312,8 @@ function game:spawnShockwave(x, y, startRadius, endRadius, width, lifetime)
 end
 
 function game:gotoNextLevel()
-  self:startLevel(require("levels." .. self.level.nextLevel))
+  self.levelIndex = self.levelIndex + 1
+  self:startLevel(levels[self.levelIndex])
 end
 
 function game:update(dt)
