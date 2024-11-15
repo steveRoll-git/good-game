@@ -456,12 +456,12 @@ function game:screenPass(shader)
 end
 
 function game:drawNoiseBackground()
-  lg.setColor(1, 1, 1, 0.5)
+  lg.setColor(1, 1, 1, 0.3)
   lg.setShader(noiseShader)
   noiseShader:send("offset", {
     love.timer.getTime() / 20 - self.cameraX / 500,
     love.timer.getTime() / 20 - self.cameraY / 500,
-    love.timer.getTime() / 10
+    love.timer.getTime() / 20
   })
   lg.rectangle("fill", 0, 0, lg.getDimensions())
   lg.setShader()
