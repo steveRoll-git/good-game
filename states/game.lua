@@ -386,6 +386,8 @@ function game:update(dt)
             self.restartEffect.direction = -1
             lg.setCanvas(self.failCanvas)
             lg.clear()
+            lg.setColor(1, 1, 1, 0.6)
+            lg.draw(self.trailCanvas2)
             lg.setColor(1, 1, 1)
             drawPremul(self.gameCanvas)
             lg.setCanvas()
