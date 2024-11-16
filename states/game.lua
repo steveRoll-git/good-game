@@ -235,6 +235,8 @@ function game:startLevel(level)
 
   self.scrollText = level.title
 
+  self.clearTrail = true
+
   self:addObject(self.player)
 end
 
@@ -605,36 +607,41 @@ function game:draw()
   end
   lg.setCanvas()
 
-  self.trailCanvas1, self.trailCanvas2 = self.trailCanvas2, self.trailCanvas1
+  if self.clearTrail then
+    self.trailCanvas1:renderTo(lg.clear)
+    self.trailCanvas2:renderTo(lg.clear)
+    self.clearTrail = false
+  else
+    self.trailCanvas1, self.trailCanvas2 = self.trailCanvas2, self.trailCanvas1
 
-  lg.setCanvas(self.trailCanvas2)
-  lg.setColor(1, 1, 1)
-  lg.draw(self.gameCanvas)
-  lg.setCanvas()
+    lg.setCanvas(self.trailCanvas2)
+    lg.setColor(1, 1, 1)
+    lg.draw(self.gameCanvas)
+    lg.setCanvas()
 
-  self.cameraDeltaRemX = self.cameraDeltaRemX + self.cameraX - self.prevCameraX
-  local deltaX = math.floor(self.cameraDeltaRemX)
-  self.cameraDeltaRemX = self.cameraDeltaRemX - deltaX
-  self.cameraDeltaRemY = self.cameraDeltaRemY + self.cameraY - self.prevCameraY
-  local deltaY = math.floor(self.cameraDeltaRemY)
-  self.cameraDeltaRemY = self.cameraDeltaRemY - deltaY
+    self.cameraDeltaRemX = self.cameraDeltaRemX + self.cameraX - self.prevCameraX
+    local deltaX = math.floor(self.cameraDeltaRemX)
+    self.cameraDeltaRemX = self.cameraDeltaRemX - deltaX
+    self.cameraDeltaRemY = self.cameraDeltaRemY + self.cameraY - self.prevCameraY
+    local deltaY = math.floor(self.cameraDeltaRemY)
+    self.cameraDeltaRemY = self.cameraDeltaRemY - deltaY
 
-  lg.setCanvas(self.trailCanvas1)
-  lg.clear(0, 0, 0, 0)
-  lg.setColor(1, 1, 1)
-  if frameCount % 5 == 0 then
-    quadDitherIndex = (quadDitherIndex + 1) % 4
-    quadDitherShader:send("idx", quadDitherIndex)
-    quadDitherShader:send("offset", { math.floor(self.cameraX), math.floor(self.cameraY) })
-    lg.setShader(quadDitherShader)
+    lg.setCanvas(self.trailCanvas1)
+    lg.clear(0, 0, 0, 0)
+    lg.setColor(1, 1, 1)
+    if frameCount % 5 == 0 then
+      quadDitherIndex = (quadDitherIndex + 1) % 4
+      quadDitherShader:send("idx", quadDitherIndex)
+      quadDitherShader:send("offset", { math.floor(self.cameraX), math.floor(self.cameraY) })
+      lg.setShader(quadDitherShader)
+    end
+    lg.draw(
+      self.trailCanvas2,
+      deltaX,
+      deltaY)
+    lg.setShader()
+    lg.setCanvas()
   end
-  lg.draw(
-    self.trailCanvas2,
-    deltaX,
-    deltaY)
-  lg.setShader()
-  lg.setCanvas()
-
 
   self:restartCrop()
   lg.setColor(1, 1, 1, 0.6)
